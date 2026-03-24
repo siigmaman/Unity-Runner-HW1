@@ -16,12 +16,20 @@ public class PlayerController : MonoBehaviour
     private int currentHealth;
     private int targetLane = 0;
     private bool isGrounded;
+    private int currentScore;        
+    private int highScore;
+    private float scoreTimer;    
+    private float originalSpeed;
+    private float speedBoostTimer;
+    private bool isSpeedBoosted;  
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         currentHealth = maxHealth;
         Debug.Log($"Game Started! Player Health: {currentHealth}");
+        highScore = PlayerPrefs.GetInt("HighScore", 0);
+        Debug.Log($"Рекорд: {highScore}");
     }
 
     void Update()
@@ -40,6 +48,24 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.W) && isGrounded)
         {
             Jump();
+        }
+
+        scoreTimer += Time.deltaTime;
+        if (scoreTimer >= 1f)
+        {
+            AddScore(10);
+            scoreTimer = 0f;
+        }
+
+        if (isSpeedBoosted)
+        {
+            speedBoostTimer -= Time.deltaTime;
+            if (speedBoostTimer <= 0)
+            {
+                forwardSpeed = originalSpeed;
+                isSpeedBoosted = false;
+                Debug.Log("Ускорение закончилось");
+            }
         }
     }
 
@@ -114,5 +140,47 @@ public class PlayerController : MonoBehaviour
     {
         Debug.Log("Player Died! Restarting...");
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void AddScore(int points)
+    {
+        currentScore += points;
+        Debug.Log($"Очки: {currentScore}");
+        
+        if (currentScore > highScore)
+        {
+            highScore = currentScore;
+            PlayerPrefs.SetInt("HighScore", highScore);
+            PlayerPrefs.Save();
+            Debug.Log($"Новый рекорд: {highScore}");
+        }
+    }
+
+    public int GetCurrentScore()
+    {
+        return currentScore;
+    }
+
+    public int GetHighScore()
+    {
+        return highScore;
+    }
+
+    public void Heal(int amount)
+    {
+        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        Debug.Log($"Вылечен! Здоровье: {currentHealth}");
+    }
+
+    public void ApplySpeedBoost(float multiplier, float duration)
+    {
+        if (!isSpeedBoosted)
+        {
+            originalSpeed = forwardSpeed;
+        }
+        forwardSpeed = originalSpeed * multiplier;
+        speedBoostTimer = duration;
+        isSpeedBoosted = true;
+        Debug.Log($"Ускорение! Скорость: {forwardSpeed}");
     }
 }
